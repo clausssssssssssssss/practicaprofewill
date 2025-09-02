@@ -48,7 +48,7 @@ const AppStack = () => (
   </Stack.Navigator>
 );
 
-const AppNavigator = () => {
+const Navigation = () => {
   const { currentUser, loading } = useAuth();
   const [splashFinished, setSplashFinished] = React.useState(false);
 
@@ -68,4 +68,4 @@ const AppNavigator = () => {
   );
 };
 
-export default AppNavigator;
+export default Navigation;

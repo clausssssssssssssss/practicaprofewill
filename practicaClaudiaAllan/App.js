@@ -1,8 +1,6 @@
-import { StatusBar } from 'expo-status-bar';
-
-import AppNavigator from './src/components/AppNavigator';
+import Navigation from './src/navigation/Navigation';
 export default function App() {
   return (
-    <AppNavigator />
+    <Navigation />
   );
 }
