@@ -30,8 +30,8 @@ const AppStack = () => (
     }}
   >
     <Stack.Screen name="Home" component={HomeScreen} />
-    <Stack.Screen 
-      name="EditProfile" 
+    <Stack.Screen
+      name="EditProfile"
       component={EditProfileScreen}
       options={{
         headerShown: true,
@@ -69,4 +69,3 @@ const AppNavigator = () => {
 };
 
 export default AppNavigator;
-

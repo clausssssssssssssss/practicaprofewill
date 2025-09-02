@@ -20,33 +20,47 @@ export const AuthProvider = ({ children }) => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Función para registrar usuario
   const register = async (email, password, userInfo) => {
     try {
+      console.log('Intentando registrar usuario:', email);
+      
+      if (!auth) {
+        throw new Error('Firebase Auth no está disponible');
+      }
+
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+      console.log('Usuario creado exitosamente:', user.uid);
 
-      // Actualizar el perfil con el nombre
-      await updateProfile(user, {
-        displayName: userInfo.nombre
-      });
+      try {
+        await updateProfile(user, {
+          displayName: userInfo.nombre
+        });
+        console.log('Perfil actualizado exitosamente');
+      } catch (profileError) {
+        console.warn('Error al actualizar perfil:', profileError);
+      }
 
-      // Guardar información adicional en Firestore
-      await setDoc(doc(db, 'users', user.uid), {
-        nombre: userInfo.nombre,
-        email: email,
-        edad: userInfo.edad,
-        especialidad: userInfo.especialidad,
-        createdAt: new Date()
-      });
+      try {
+        await setDoc(doc(db, 'users', user.uid), {
+          nombre: userInfo.nombre,
+          email: email,
+          edad: userInfo.edad,
+          especialidad: userInfo.especialidad,
+          createdAt: new Date()
+        });
+        console.log('Datos guardados en Firestore exitosamente');
+      } catch (firestoreError) {
+        console.warn('Error al guardar en Firestore:', firestoreError);
+      }
 
       return userCredential;
     } catch (error) {
+      console.error('Error completo en registro:', error);
       throw error;
     }
   };
 
-  // Función para iniciar sesión
   const login = async (email, password) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -56,7 +70,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Función para cerrar sesión
   const logout = async () => {
     try {
       await signOut(auth);
@@ -65,18 +78,15 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Función para actualizar información del usuario
   const updateUserData = async (userId, newData) => {
     try {
       await setDoc(doc(db, 'users', userId), newData, { merge: true });
-      // Actualizar el estado local
       setUserData(prev => ({ ...prev, ...newData }));
     } catch (error) {
       throw error;
     }
   };
 
-  // Función para obtener datos del usuario desde Firestore
   const fetchUserData = async (userId) => {
     try {
       const userDoc = await getDoc(doc(db, 'users', userId));
@@ -88,9 +98,15 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Escuchar cambios en el estado de autenticación
   useEffect(() => {
+    if (!auth) {
+      console.log('Auth no está disponible aún');
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('Estado de autenticación cambiado:', user ? 'Usuario logueado' : 'Usuario no logueado');
       setCurrentUser(user);
       if (user) {
         await fetchUserData(user.uid);
