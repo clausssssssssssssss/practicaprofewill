@@ -1,137 +1,108 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signOut, 
-  onAuthStateChanged,
-  updateProfile
-} from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../config/firebase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AuthContext = createContext();
 
 export const useAuth = () => {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
+  }
+  return context;
 };
 
 export const AuthProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [userData, setUserData] = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const register = async (email, password, userInfo) => {
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
     try {
-      console.log('Intentando registrar usuario:', email);
-      
-      if (!auth) {
-        throw new Error('Firebase Auth no está disponible');
+      const userData = await AsyncStorage.getItem('userData');
+      if (userData) {
+        setUser(JSON.parse(userData));
       }
-
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      console.log('Usuario creado exitosamente:', user.uid);
-
-      try {
-        await updateProfile(user, {
-          displayName: userInfo.nombre
-        });
-        console.log('Perfil actualizado exitosamente');
-      } catch (profileError) {
-        console.warn('Error al actualizar perfil:', profileError);
-      }
-
-      try {
-        await setDoc(doc(db, 'users', user.uid), {
-          nombre: userInfo.nombre,
-          email: email,
-          edad: userInfo.edad,
-          especialidad: userInfo.especialidad,
-          createdAt: new Date()
-        });
-        console.log('Datos guardados en Firestore exitosamente');
-      } catch (firestoreError) {
-        console.warn('Error al guardar en Firestore:', firestoreError);
-      }
-
-      return userCredential;
     } catch (error) {
-      console.error('Error completo en registro:', error);
-      throw error;
+      console.error('Error al cargar datos del usuario:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const login = async (email, password) => {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      return userCredential;
+      const userData = await AsyncStorage.getItem('userData');
+      if (userData) {
+        const parsedUser = JSON.parse(userData);
+        if (parsedUser.email === email && parsedUser.password === password) {
+          setUser(parsedUser);
+          return { success: true };
+        }
+      }
+      return { success: false, error: 'Credenciales incorrectas' };
     } catch (error) {
-      throw error;
+      console.error('Error en login:', error);
+      return { success: false, error: 'Error al iniciar sesión' };
+    }
+  };
+
+  const register = async (userData) => {
+    try {
+      // Verificar si ya existe un usuario con ese email
+      const existingData = await AsyncStorage.getItem('userData');
+      if (existingData) {
+        const existingUser = JSON.parse(existingData);
+        if (existingUser.email === userData.email) {
+          return { success: false, error: 'Ya existe un usuario con este email' };
+        }
+      }
+
+      // Guardar datos del usuario
+      await AsyncStorage.setItem('userData', JSON.stringify(userData));
+      setUser(userData);
+      return { success: true };
+    } catch (error) {
+      console.error('Error en registro:', error);
+      return { success: false, error: 'Error al registrar usuario' };
+    }
+  };
+
+  const updateUser = async (updatedData) => {
+    try {
+      const newUserData = { ...user, ...updatedData };
+      await AsyncStorage.setItem('userData', JSON.stringify(newUserData));
+      setUser(newUserData);
+      return { success: true };
+    } catch (error) {
+      console.error('Error al actualizar usuario:', error);
+      return { success: false, error: 'Error al actualizar perfil' };
     }
   };
 
   const logout = async () => {
     try {
-      await signOut(auth);
+      await AsyncStorage.removeItem('userData');
+      setUser(null);
     } catch (error) {
-      throw error;
+      console.error('Error al cerrar sesión:', error);
     }
   };
-
-  const updateUserData = async (userId, newData) => {
-    try {
-      await setDoc(doc(db, 'users', userId), newData, { merge: true });
-      setUserData(prev => ({ ...prev, ...newData }));
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const fetchUserData = async (userId) => {
-    try {
-      const userDoc = await getDoc(doc(db, 'users', userId));
-      if (userDoc.exists()) {
-        setUserData(userDoc.data());
-      }
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-    }
-  };
-
-  useEffect(() => {
-    if (!auth) {
-      console.log('Auth no está disponible aún');
-      setLoading(false);
-      return;
-    }
-
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log('Estado de autenticación cambiado:', user ? 'Usuario logueado' : 'Usuario no logueado');
-      setCurrentUser(user);
-      if (user) {
-        await fetchUserData(user.uid);
-      } else {
-        setUserData(null);
-      }
-      setLoading(false);
-    });
-
-    return unsubscribe;
-  }, []);
 
   const value = {
-    currentUser,
-    userData,
-    register,
+    user,
+    loading,
     login,
+    register,
+    updateUser,
     logout,
-    updateUserData,
-    loading
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };

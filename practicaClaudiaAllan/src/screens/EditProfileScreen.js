@@ -14,7 +14,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 
 const EditProfileScreen = ({ navigation }) => {
-  const { currentUser, userData, updateUserData } = useAuth();
+  const { user, updateUser } = useAuth();
   const [formData, setFormData] = useState({
     nombre: '',
     edad: '',
@@ -23,14 +23,14 @@ const EditProfileScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (userData) {
+    if (user) {
       setFormData({
-        nombre: userData.nombre || '',
-        edad: userData.edad || '',
-        especialidad: userData.especialidad || '',
+        nombre: user.nombre || '',
+        edad: user.edad || '',
+        especialidad: user.especialidad || '',
       });
     }
-  }, [userData]);
+  }, [user]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -59,18 +59,19 @@ const EditProfileScreen = ({ navigation }) => {
     if (!validateForm()) return;
 
     setLoading(true);
+
     try {
-      await updateUserData(currentUser.uid, {
-        nombre: formData.nombre,
-        edad: formData.edad,
-        especialidad: formData.especialidad,
-        updatedAt: new Date()
-      });
-      Alert.alert('Éxito', 'Perfil actualizado correctamente', [
-        { text: 'OK', onPress: () => navigation.goBack() }
-      ]);
+      const result = await updateUser(formData);
+      
+      if (result.success) {
+        Alert.alert('Éxito', 'Perfil actualizado correctamente', [
+          { text: 'OK', onPress: () => navigation.goBack() }
+        ]);
+      } else {
+        Alert.alert('Error', result.error);
+      }
     } catch (error) {
-      Alert.alert('Error', 'Error al actualizar el perfil');
+      Alert.alert('Error', 'Error al actualizar perfil');
     } finally {
       setLoading(false);
     }

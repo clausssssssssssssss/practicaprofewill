@@ -12,12 +12,12 @@ import {
 import { useAuth } from '../context/AuthContext';
 
 const LoginScreen = ({ navigation }) => {
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -42,21 +42,16 @@ const LoginScreen = ({ navigation }) => {
     if (!validateForm()) return;
 
     setLoading(true);
+
     try {
-      await login(formData.email, formData.password);
-      // La navegación se manejará automáticamente por el AuthContext
-    } catch (error) {
-      let errorMessage = 'Error al iniciar sesión';
-      if (error.code === 'auth/user-not-found') {
-        errorMessage = 'Usuario no encontrado';
-      } else if (error.code === 'auth/wrong-password') {
-        errorMessage = 'Contraseña incorrecta';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Correo electrónico inválido';
-      } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = 'Demasiados intentos fallidos. Intenta más tarde';
+      const result = await login(formData.email, formData.password);
+      
+      if (!result.success) {
+        Alert.alert('Error', result.error);
       }
-      Alert.alert('Error', errorMessage);
+      // Si es exitoso, el contexto manejará la navegación automáticamente
+    } catch (error) {
+      Alert.alert('Error', 'Error al iniciar sesión');
     } finally {
       setLoading(false);
     }

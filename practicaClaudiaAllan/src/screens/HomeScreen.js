@@ -10,7 +10,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 
 const HomeScreen = ({ navigation }) => {
-  const { currentUser, userData, logout } = useAuth();
+  const { user, logout } = useAuth();
 
   const handleLogout = () => {
     Alert.alert(
@@ -24,12 +24,8 @@ const HomeScreen = ({ navigation }) => {
         {
           text: 'Cerrar Sesión',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              await logout();
-            } catch (error) {
-              Alert.alert('Error', 'Error al cerrar sesión');
-            }
+          onPress: () => {
+            logout();
           },
         },
       ]
@@ -45,7 +41,7 @@ const HomeScreen = ({ navigation }) => {
       <View style={styles.header}>
         <Text style={styles.welcomeText}>¡Bienvenido!</Text>
         <Text style={styles.userName}>
-          {userData?.nombre || currentUser?.displayName || 'Usuario'}
+          {user?.nombre || 'Usuario'}
         </Text>
       </View>
 
@@ -56,28 +52,28 @@ const HomeScreen = ({ navigation }) => {
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Nombre:</Text>
             <Text style={styles.infoValue}>
-              {userData?.nombre || 'No especificado'}
+              {user?.nombre || 'No disponible'}
             </Text>
           </View>
           
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Email:</Text>
             <Text style={styles.infoValue}>
-              {currentUser?.email || 'No especificado'}
+              {user?.email || 'No disponible'}
             </Text>
           </View>
           
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Edad:</Text>
             <Text style={styles.infoValue}>
-              {userData?.edad || 'No especificado'}
+              {user?.edad ? `${user.edad} años` : 'No disponible'}
             </Text>
           </View>
           
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Especialidad:</Text>
             <Text style={styles.infoValue}>
-              {userData?.especialidad || 'No especificado'}
+              {user?.especialidad || 'No disponible'}
             </Text>
           </View>
         </View>
